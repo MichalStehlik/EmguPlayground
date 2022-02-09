@@ -1,4 +1,5 @@
 ﻿using Emgu.CV;
+using Emgu.CV.CvEnum;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -15,83 +16,103 @@ namespace EmguPlayground.ViewModels
 {
     internal class MainViewModel : INotifyPropertyChanged
     {
-        private BitmapSource? _current;
-        private BitmapSource? _original;
+        private Mat _current = new Mat();
+        private Mat _original = new Mat();
+        private VideoCapture _cap = new VideoCapture();
 
         public MainViewModel()
         {
             RestoreCommand = new RelayCommand(
                 () =>
                 {
-                    CurrentImage = OriginalImage.Clone();
+                    Preview = _original.Clone();
+                    GrayscaleCommand?.RaiseCanExecuteChanged();
                 },
-                () => { return (_original != null); }
+                () => { return (!_original.IsEmpty); }
             );
             GrayscaleCommand = new RelayCommand(
                 () =>
                 {
-                    Bitmap inBmp = BitmapFromSource(OriginalImage);
-                    Mat img = inBmp.ToMat();
-
-                    Bitmap outBmp = new Bitmap(100,100);
-                    img.ToBitmap(outBmp);
-                    CurrentImage = ConvertBitmap(outBmp);
+                    Mat img = new Mat(Preview.Size, DepthType.Cv8U, 1);
+                    CvInvoke.CvtColor(Preview, img, ColorConversion.Rgba2Gray);
+                    Preview = img;
+                    GrayscaleCommand?.RaiseCanExecuteChanged();
                 },
-                () => { return (_current != null); }
+                () => { return (!Preview.IsEmpty && Preview.NumberOfChannels == 3); }
             );
+            BlurCommand = new RelayCommand(
+                () =>
+                {
+                    Mat img = new Mat(Preview.Size, DepthType.Cv8U, 3);
+                    CvInvoke.GaussianBlur(Preview, img, new System.Drawing.Size(5, 5), 1.5);
+                    Preview = img;
+                },
+                () => { return (!Preview.IsEmpty); }
+            );
+            CannyCommand = new RelayCommand(
+                () =>
+                {
+                    Mat img = new Mat(Preview.Size, DepthType.Cv8U, 3);
+                    CvInvoke.Canny(Preview, img, 100, 200);
+                    Preview = img;
+                },
+                () => { return (!Preview.IsEmpty); }
+            );
+            FacesCommand = new RelayCommand(
+                () =>
+                {
+                    Mat img = new Mat(Preview.Size, DepthType.Cv8U, 3);
+                    CvInvoke.Canny(Preview, img, 100, 200);
+                    Preview = img;
+                },
+                () => { return (!Preview.IsEmpty); }
+            );
+            CaptureCommand = new RelayCommand(
+                () =>
+                {
+                    Mat img = new Mat();
+                    _cap.Retrieve(img);
+                    Preview = img;
+                    RestoreCommand.RaiseCanExecuteChanged();
+                    GrayscaleCommand.RaiseCanExecuteChanged();
+                    BlurCommand.RaiseCanExecuteChanged();
+                    CannyCommand.RaiseCanExecuteChanged();
+                    FacesCommand.RaiseCanExecuteChanged();
+                },
+                () => { return true; }
+            );
+        }
+
+        public Mat Preview 
+        {
+            get 
+            {
+                return _current;
+            }
+            private set
+            {
+                _current = value;
+                NotifyPropertyChanged();
+            } 
         }
 
         public RelayCommand RestoreCommand { get; set; }
         public RelayCommand GrayscaleCommand { get; set; }
-        public BitmapSource CurrentImage {
-            get 
-            { 
-                return _current;
-            } 
-            set 
-            {
-                _current = value;
-                NotifyPropertyChanged();
-                GrayscaleCommand.RaiseCanExecuteChanged();
-            } 
-        }
+        public RelayCommand BlurCommand { get; set; }
+        public RelayCommand CannyCommand { get; set; }
+        public RelayCommand FacesCommand { get; set; }
+        public RelayCommand CaptureCommand { get; set; }
 
-        public BitmapSource OriginalImage
+        public void LoadImage(string filename)
         {
-            get
-            {
-                return _original;
-            }
-            set
-            {
-                _original = value;
-                NotifyPropertyChanged();
-                RestoreCommand.RaiseCanExecuteChanged();
-            }
+            Preview = CvInvoke.Imread(filename, ImreadModes.AnyColor);
+            _original = Preview.Clone();
+            RestoreCommand.RaiseCanExecuteChanged();
+            GrayscaleCommand.RaiseCanExecuteChanged();
+            BlurCommand.RaiseCanExecuteChanged();
+            CannyCommand.RaiseCanExecuteChanged();
+            FacesCommand.RaiseCanExecuteChanged();
         }
-
-        public static BitmapSource ConvertBitmap(Bitmap source)
-        {
-            return System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
-                          source.GetHbitmap(),
-                          IntPtr.Zero,
-                          Int32Rect.Empty,
-                          BitmapSizeOptions.FromEmptyOptions());
-        }
-
-        public static Bitmap BitmapFromSource(BitmapSource bitmapsource)
-        {
-            Bitmap bitmap;
-            using (var outStream = new MemoryStream())
-            {
-                BitmapEncoder enc = new BmpBitmapEncoder();
-                enc.Frames.Add(BitmapFrame.Create(bitmapsource));
-                enc.Save(outStream);
-                bitmap = new Bitmap(outStream);
-            }
-            return bitmap;
-        }
-
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void NotifyPropertyChanged([CallerMemberName] String propertyName = "")

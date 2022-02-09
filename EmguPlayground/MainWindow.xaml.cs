@@ -37,9 +37,25 @@ namespace EmguPlayground
             if (ofd.ShowDialog() == true)
             {
                 MainViewModel vm = (MainViewModel)DataContext;
-                vm.CurrentImage = new BitmapImage(new Uri(ofd.FileName));
-                vm.OriginalImage = new BitmapImage(new Uri(ofd.FileName));
+                vm.LoadImage(ofd.FileName);
             }
+        }
+
+        private void BtnSave_Click(object sender, RoutedEventArgs e)
+        {
+            MainViewModel vm = (MainViewModel)DataContext;
+            if (!vm.Preview.IsEmpty)
+            {
+                SaveFileDialog sfd = new SaveFileDialog();
+                sfd.Title = "Select a name";
+                sfd.Filter = "All supported graphics|*.jpg;*.jpeg;*.png|" +
+                  "JPEG (*.jpg;*.jpeg)|*.jpg;*.jpeg|" +
+                  "Portable Network Graphic (*.png)|*.png";
+                if (sfd.ShowDialog() == true)
+                {
+                    vm.Preview.Save(sfd.FileName);
+                }
+            }      
         }
     }
 }
