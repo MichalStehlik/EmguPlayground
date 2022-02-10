@@ -30,9 +30,12 @@
             <Button Command="{Binding RestoreCommand}">Restore</Button>
             <Label>Filters</Label>
             <Button Command="{Binding GrayscaleCommand}">Grayscale</Button>
+            <Button Command="{Binding NormalizeGrayscaleCommand}">Equalized Grayscale</Button>
             <Button Command="{Binding BlurCommand}" >Gaussian Blur</Button>
-            <Button Command="{Binding CannyCommand}" >Edges Canny</Button>
+            <Label>Generation</Label>
+            <Button Command="{Binding RectangleCommand}">Rectangle</Button>
             <Label>Detection</Label>
+            <Button Command="{Binding CannyCommand}" >Edges Canny</Button>
             <Button Command="{Binding FacesCommand}" >Faces</Button>
         </StackPanel>
         <Image Name="imgPhoto" Stretch="Uniform" Grid.Column="1" Source="{Binding Preview, Converter={StaticResource MatConverter}}" Grid.Row="1"/>
